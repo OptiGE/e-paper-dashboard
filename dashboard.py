@@ -61,7 +61,7 @@ def draw_clock(background):
     x, y = 118, 45 # Middle of sun for two digit numbers
 
     draw = ImageDraw.Draw(background)
-    current_hour = datetime.now().strftime("%H")  # or "%I" for 12-hour format
+    current_hour = datetime.now().strftime("%M")  # or "%I" for 12-hour format
     draw.text((x, y), current_hour, font=font, fill=0)
 
 def get_bus_times():
@@ -98,7 +98,7 @@ def get_bus_times():
 def draw_bus_times(background, bus_times):
     smallfont = ImageFont.truetype(os.path.join(maindir, 'Font.ttc'), 25)
     largefont = ImageFont.truetype(os.path.join(maindir, 'Font.ttc'), 30)
-    x, y = 70, 525 # Middle of sun for two digit numbers
+    x, y = 70, 525 
     for direction, times in bus_times.items():
         draw = ImageDraw.Draw(background)
         draw.text((x, y), direction, font=largefont, fill=0)
@@ -108,9 +108,58 @@ def draw_bus_times(background, bus_times):
             draw.text((x + 10, y), f"- {t}", font=smallfont, fill=0)
             y += 28
         y += 20
+
+import requests
+
+def get_available_bikes(station_id):
+    try:
+        url = "https://gbfs.nextbike.net/maps/gbfs/v2/nextbike_zg/sv/station_status.json"
+        response = requests.get(url, timeout=5)
+        response.raise_for_status()  # Raise exception for HTTP errors
+
+        data = response.json()
+
+        stations = data.get("data", {}).get("stations", [])
+        if not stations:
+            logging.info("No station data found in feed.")
+            return None
+
+        # Build a lookup dictionary 
+        station_map = {s["station_id"]: s for s in stations}
+
+        if station_id not in station_map:
+            logging.info(f"Station ID {station_id} not found.")
+            return None
+
+        return station_map[station_id].get("num_bikes_available", -1)
+
+    except requests.RequestException as e:
+        print(f"Network or API error: {e}")
+    except Exception as e:
+        print(f"Unexpected error: {e}")
+
+    return None  # In case of error
+
+def draw_num_of_bikes(background, num_of_bikes):
+    smallfont = ImageFont.truetype(os.path.join(maindir, 'Font.ttc'), 25)
+    largefont = ImageFont.truetype(os.path.join(maindir, 'Font.ttc'), 30)
+    x, y = 260, 270
+
+    draw = ImageDraw.Draw(background)
+    draw.text((x, y), "Antal cyklar:", font=largefont, fill=0)
+    y += 40
+    draw.text((x + 10, y), f"- {num_of_bikes}", font=smallfont, fill=0)
+
+
 ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## 
 
 def main():
+
+    while not os.path.exists("/dev/spidev0.0"):
+        loggin.info("Waiting for SPI...")
+        time.sleep(1)
+
+
     try:
         # MAIN PROGRAM
         logging.info("Running dashboard software")
@@ -125,8 +174,11 @@ def main():
             bus_times = get_bus_times()
             draw_bus_times(background, bus_times)
 
+            num_of_bikes = get_available_bikes("31107695") #31107695 är mossen
+            draw_num_of_bikes(background, num_of_bikes)
+
             # Either do partial refresh or complete refresh
-            if number_of_partial_refreshes > 10:
+            if number_of_partial_refreshes > 15:
                 epd.init()
                 logging.info("Running major refresh")
                 epd.display(epd.getbuffer(background))
@@ -139,7 +191,7 @@ def main():
 
             #logging.info("Goto Sleep...")
             #epd.sleep() #Fungerar inte utan att starta om man också ska uppdatera skärmen, och det spelar ingen roll om den är ipluggad
-            time.sleep(60)
+            time.sleep(45)
 
 
 
