@@ -56,7 +56,7 @@ def find_position():
             elif cmd == 'd': x += 2
             elif cmd == 'q': break
 
-def draw_clock(background, epd):
+def draw_clock(background):
     font = ImageFont.truetype(os.path.join(maindir, 'Font.ttc'), 25)
     x, y = 118, 45 # Middle of sun for two digit numbers
 
@@ -95,6 +95,19 @@ def get_bus_times():
 
     return simplified_output
 
+def draw_bus_times(background, bus_times):
+    smallfont = ImageFont.truetype(os.path.join(maindir, 'Font.ttc'), 25)
+    largefont = ImageFont.truetype(os.path.join(maindir, 'Font.ttc'), 30)
+    x, y = 70, 525 # Middle of sun for two digit numbers
+    for direction, times in bus_times.items():
+        draw = ImageDraw.Draw(background)
+        draw.text((x, y), direction, font=largefont, fill=0)
+        y += 40
+        print(direction)
+        for t in times:
+            draw.text((x + 10, y), f"- {t}", font=smallfont, fill=0)
+            y += 28
+        y += 20
 ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## 
 
 def main():
@@ -107,37 +120,25 @@ def main():
         while True:
             background = display_background(epd)
             
-            draw_clock(background, epd)
+            draw_clock(background)
 
             bus_times = get_bus_times()
-
-            smallfont = ImageFont.truetype(os.path.join(maindir, 'Font.ttc'), 25)
-            largefont = ImageFont.truetype(os.path.join(maindir, 'Font.ttc'), 30)
-            x, y = 70, 525 # Middle of sun for two digit numbers
-            for direction, times in bus_times.items():
-                draw = ImageDraw.Draw(background)
-                draw.text((x, y), direction, font=largefont, fill=0)
-                y += 40
-                print(direction)
-                for t in times:
-                    draw.text((x + 10, y), f"- {t}", font=smallfont, fill=0)
-                    y += 28
-                y += 20
+            draw_bus_times(background, bus_times)
 
             # Either do partial refresh or complete refresh
             if number_of_partial_refreshes > 10:
                 epd.init()
-                print("Running major refresh")
+                logging.info("Running major refresh")
                 epd.display(epd.getbuffer(background))
                 number_of_partial_refreshes = 0
             else:
                 epd.init_part()  # <- Switch to partial mode
-                print("Running partial refresh")
+                logging.info("Running partial refresh")
                 epd.display_Partial(epd.getbuffer(background),0, 0, epd.width, epd.height) # Från (0,0) till (width, height) alltså uppdaterar vi hela skärmen
                 number_of_partial_refreshes += 1
 
-            #logging.info("Goto Sleep...")
-            #epd.sleep() Fungerar inte utan att starta om man också ska uppdatera skärmen, och det spelar ingen roll om den är ipluggad
+            logging.info("Goto Sleep...")
+            epd.sleep() #Fungerar inte utan att starta om man också ska uppdatera skärmen, och det spelar ingen roll om den är ipluggad
             time.sleep(60)
 
 
