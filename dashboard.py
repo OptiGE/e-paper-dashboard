@@ -137,8 +137,8 @@ def main():
                 epd.display_Partial(epd.getbuffer(background),0, 0, epd.width, epd.height) # Från (0,0) till (width, height) alltså uppdaterar vi hela skärmen
                 number_of_partial_refreshes += 1
 
-            logging.info("Goto Sleep...")
-            epd.sleep() #Fungerar inte utan att starta om man också ska uppdatera skärmen, och det spelar ingen roll om den är ipluggad
+            #logging.info("Goto Sleep...")
+            #epd.sleep() #Fungerar inte utan att starta om man också ska uppdatera skärmen, och det spelar ingen roll om den är ipluggad
             time.sleep(60)
 
 
